@@ -53,6 +53,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link Selector} and so does the multi-plexing of these in the event loop.
  *
  */
+
+/**
+ * 注册Channel到一个Selector中
+ * 在NioEventLoop中的整个生命周期只会和一个线程绑定,因此与这个NioEventLoop关联的Channel的IO事件都会在这个线程中完成
+ *
+ * 1.NioEventLoop是一个基于JDK NIO的异步事件循环类，它负责处理一个Channel的所有事件在这个Channel的生命周期期间
+ * 2.NioEventLoop的整个生命周期只会依赖于一个单一的线程来完成
+ * 3.如果调用Channel操作的线程是EventLoop所关联的线程，那么该操作会被立即执行。否则会将该操作封装成任务放入EventLoop的任务队列中
+ * 4.所有提交到NioEventLoop的任务都会先放入队列中，然后在线程中以有序(FIFO)/连续的方式执行所有提交的任务
+ * 5.NioEventLoop的事件循环主要完成了：
+ *          a)已经注册到Selector的Channel的监控，并在感兴趣的事件可执行时对其进行处理
+ *          b)完成任务队列(taskQueue)中的任务，以及对可执行的定时任务和周期性任务的处理(scheduledTaskQueue中的可执行的任务都会先放入taskQueue中后，再从taskQueue中依次取出执行)。
+ */
 public final class NioEventLoop extends SingleThreadEventLoop {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioEventLoop.class);

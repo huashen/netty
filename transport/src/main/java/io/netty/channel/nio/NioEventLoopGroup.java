@@ -33,6 +33,10 @@ import java.util.concurrent.ThreadFactory;
 /**
  * {@link MultithreadEventLoopGroup} implementations which is used for NIO {@link Selector} based {@link Channel}s.
  */
+
+/**
+ * 异步事件循环组
+ */
 public class NioEventLoopGroup extends MultithreadEventLoopGroup {
 
     /**

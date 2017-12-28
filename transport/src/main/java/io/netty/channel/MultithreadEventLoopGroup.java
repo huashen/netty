@@ -36,6 +36,11 @@ public abstract class MultithreadEventLoopGroup extends MultithreadEventExecutor
 
     private static final int DEFAULT_EVENT_LOOP_THREADS;
 
+    /**
+     *  1.如果系统属性中有“io.netty.eventLoopThreads”属性值，则返回；
+     *      否则取可用处理器核心 * 2(处理器超线程数) * 2的值(即，NettyRuntime.availableProcessors() * 2)
+        2.第1步结果与1比较，取其中大的那个值
+     */
     static {
         DEFAULT_EVENT_LOOP_THREADS = Math.max(1, SystemPropertyUtil.getInt(
                 "io.netty.eventLoopThreads", NettyRuntime.availableProcessors() * 2));
