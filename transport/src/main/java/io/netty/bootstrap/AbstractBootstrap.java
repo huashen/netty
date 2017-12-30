@@ -280,6 +280,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        /**
+         * Channel的初始化操作，并且构建了该Channel的ChannelPipeline，
+         * 然后将该Channel(即，NioServerSocketChannel)注册到EventLoopGroup(即，parentGroup)中的某个EventLoop(即，NioEventLoop)上
+         */
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
@@ -307,6 +311,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
                         // See https://github.com/netty/netty/issues/2586
                         promise.registered();
 
+                        /**
+                         * 在NioServerSocketChannel注册到NioEventLoop成功完成后，将ServerSocketChannel绑定到本地指定端口上
+                         */
                         doBind0(regFuture, channel, localAddress, promise);
                     }
                 }

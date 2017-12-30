@@ -162,6 +162,12 @@ import java.util.concurrent.TimeUnit;
  * }
  * </pre>
  */
+
+/**
+ * 针对于Channel的一个Future对象,表示一个异步的Channel I/O操作结果
+ * 这意味着任何I/O的调用都会立即的返回，并且它不保证所请求的I/O操作在调用之后会完成
+ * 一个ChannelFuture要么是uncompleted的，要么是completed的
+ */
 public interface ChannelFuture extends Future<Void> {
 
     /**
