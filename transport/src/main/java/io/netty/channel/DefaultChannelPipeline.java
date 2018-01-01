@@ -89,6 +89,17 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      */
     private boolean registered;
 
+    /**
+        a) 赋值NioServerSocketChannel给成员变量channel
+        b) 根据channel构建SucceededChannelFuture、VoidChannelPromise成员变量
+        c) 构建ChannelHandler链表头HeadContext和链表尾TailContext，并赋值给成员变量head、tail
+        d) 将head.next指向tail，将tail.prev指向head
+     注意：
+     1）入站事件会依次被从head ——> ... ——> tail中的所有ChannelInboundHandler处理
+     2）出站事件会依次被从tail ——> ... ——> head中的所有ChannelOutboundHandler处理
+     3）我们程序中通过add*(...)加进来的ChannelHandler都会处于head和tail之间
+        也就是说链表头是HeadConext，链表尾是TailContext，这是固定不会改变的
+     */
     protected DefaultChannelPipeline(Channel channel) {
         this.channel = ObjectUtil.checkNotNull(channel, "channel");
         succeededFuture = new SucceededChannelFuture(channel, null);
@@ -1196,6 +1207,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     // A special catch-all handler that handles both bytes and messages.
+
+    /**
+     * TailContext作为ChannelHandler链中的最后一个ChannelHandler，它仅实现了ChannelInboundHandler
+     * 因此TailContext是入站事件的最后一个ChannelHandler，它主要完成了一些资源的释放工作
+     */
     final class TailContext extends AbstractChannelHandlerContext implements ChannelInboundHandler {
 
         TailContext(DefaultChannelPipeline pipeline) {
@@ -1250,6 +1266,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         public void channelReadComplete(ChannelHandlerContext ctx) throws Exception { }
     }
 
+    /**
+     * HeadConext作为链表头，它同时实现了ChannelOutboundHandler和ChannelInboundHandler
+     * 也就是说它即会处理入站数据也会处理出站数据、它持有NioMessageUnsafe对象，该类用于完成Channel真实的I/O操作和传输
+     */
     final class HeadContext extends AbstractChannelHandlerContext
             implements ChannelOutboundHandler, ChannelInboundHandler {
 
