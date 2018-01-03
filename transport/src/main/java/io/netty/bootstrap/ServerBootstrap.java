@@ -165,7 +165,18 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         synchronized (childAttrs) {
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(childAttrs.size()));
         }
+        /**
+         * 上面部分代码是完成options和attributes相关的设定
+         * 这里设定的是NioServerSocketChannel的options和attributes的相关配置
+         * 即，我们程序中通过serverBootstrap.option(...)和serverBootstrap.attr(...)设置的配置项
+         */
 
+
+        /**
+         * 主要完成了将ChannelInitializer封装成一个DefaultChannelHandlerContext
+         * 对象加入到ChannelPipeline中的ChannelHandler链表的尾部(即，tail前)，
+         * 此时ChannelPipeline中的ChannelHandler链表为：head ——> 封装了ChannelInitializer的DefaultChannelHandlerContext ——> tail
+         */
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {

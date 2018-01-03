@@ -98,7 +98,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      1）入站事件会依次被从head ——> ... ——> tail中的所有ChannelInboundHandler处理
      2）出站事件会依次被从tail ——> ... ——> head中的所有ChannelOutboundHandler处理
      3）我们程序中通过add*(...)加进来的ChannelHandler都会处于head和tail之间
-        也就是说链表头是HeadConext，链表尾是TailContext，这是固定不会改变的
+        也就是说链表头是HeadContext，链表尾是TailContext，这是固定不会改变的
      */
     protected DefaultChannelPipeline(Channel channel) {
         this.channel = ObjectUtil.checkNotNull(channel, "channel");
@@ -1267,7 +1267,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     /**
-     * HeadConext作为链表头，它同时实现了ChannelOutboundHandler和ChannelInboundHandler
+     * HeadContext作为链表头，它同时实现了ChannelOutboundHandler和ChannelInboundHandler
      * 也就是说它即会处理入站数据也会处理出站数据、它持有NioMessageUnsafe对象，该类用于完成Channel真实的I/O操作和传输
      */
     final class HeadContext extends AbstractChannelHandlerContext
