@@ -46,6 +46,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
     private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
+
+    //ServerBootstrapConfig中持有了当前的ServerBootstrap的实例
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
     private volatile EventLoopGroup childGroup;
     private volatile ChannelHandler childHandler;
@@ -251,6 +253,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
         @Override
         @SuppressWarnings("unchecked")
+        /**
+         * 当NioServerSocketChannel接收了新的客户端连接请求后，将NioSocketChannel注册到childGroup中
+         * 在注册前会设定好NioSocketChannel的ChannelPipeline中的ChannelHandler链(即，我们程序serverBootstrap.childHandler(…)所设置的值)，
+         * 以及NioSocketChannel的options和attr属性配置(即，我们程序serverBootstrap.childOption(...)、serverBootstrap.childAttr(...)所设置的值)
+         */
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final Channel child = (Channel) msg;
 

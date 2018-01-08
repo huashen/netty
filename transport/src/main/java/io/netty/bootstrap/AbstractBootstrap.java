@@ -49,6 +49,9 @@ import java.util.Map;
  */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
 
+    /**
+     * 这个group就是我们之前在对ServerBootstrap进行启动项配置是通过group(bossGroup,workerGroup)传入的bossGroup(即，NioEventLoopGroup)
+     */
     volatile EventLoopGroup group;
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
