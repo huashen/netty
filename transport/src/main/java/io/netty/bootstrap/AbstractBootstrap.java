@@ -51,13 +51,29 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * 这个group就是我们之前在对ServerBootstrap进行启动项配置是通过group(bossGroup,workerGroup)传入的bossGroup(即，NioEventLoopGroup)
+     * 表示一个reactor线程池
      */
     volatile EventLoopGroup group;
     @SuppressWarnings("deprecation")
+    /**
+     *用来创建初始的Channel,比如服务端的第一个执行bind()方法的serverChannel，客户端第一个执行connect()方法的Channel
+     */
     private volatile ChannelFactory<? extends C> channelFactory;
     private volatile SocketAddress localAddress;
+
+    /**
+     * channel相关的选项参数
+     */
     private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
+
+    /**
+     * 初始化channel属性值
+     */
     private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<AttributeKey<?>, Object>();
+
+    /**
+     * 业务逻辑handler，主要是HandlerInitializer，也可能是普通Handler
+     */
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
@@ -98,6 +114,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
      */
+
+    /**
+     * 设置Channel的无参构造工厂
+     */
     public B channel(Class<? extends C> channelClass) {
         if (channelClass == null) {
             throw new NullPointerException("channelClass");
@@ -110,6 +130,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      */
     @Deprecated
     @SuppressWarnings("unchecked")
+    /**
+     * 设置ChannelFactory
+     */
     public B channelFactory(ChannelFactory<? extends C> channelFactory) {
         if (channelFactory == null) {
             throw new NullPointerException("channelFactory");
@@ -241,6 +264,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * Create a new {@link Channel} and bind it.
      */
+    /**
+     * 创建一个Channel并绑定到本地端口
+     * @return
+     */
     public ChannelFuture bind() {
         validate();
         SocketAddress localAddress = this.localAddress;
@@ -282,6 +309,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return doBind(localAddress);
     }
 
+    /**
+     * 完成注册和绑定，其中注册是指Channel注册到reactor线程池，绑定是指Channel获得了本机的一个TCP端口
+     */
     private ChannelFuture doBind(final SocketAddress localAddress) {
         /**
          * Channel的初始化操作，并且构建了该Channel的ChannelPipeline，
@@ -300,14 +330,16 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return promise;
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
+            //由于注册是异步事件，可能此时没有注册完成，那么使用异步操作
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
+                public void operationComplete(ChannelFuture future) throws Exception {// 该方法在注册完成时调用
                     Throwable cause = future.cause();
                     if (cause != null) {
                         // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
                         // IllegalStateException once we try to access the EventLoop of the Channel.
+                        // 注册过程中有异常则失败
                         promise.setFailure(cause);
                     } else {
                         // Registration was successful, so set the correct executor to use.
@@ -325,6 +357,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * 用于创建Channel、绑定用户定义的Handler、以及将该Chanel注册到一个Reactor中
+     */
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
@@ -338,7 +373,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
             return new DefaultChannelPromise(channel, GlobalEventExecutor.INSTANCE).setFailure(t);
         }
-
+        //将channel注册到Reactor线程池
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -360,6 +395,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return regFuture;
     }
 
+    /**
+     * 初始化一个Channel
+     */
     abstract void init(Channel channel) throws Exception;
 
     private static void doBind0(

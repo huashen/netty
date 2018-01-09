@@ -222,6 +222,11 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return new Map.Entry[size];
     }
 
+    /**
+     * 1.ServerBootstrapAcceptor也是一个Inbound处理器，用于在Server端accept新的客户端连接时，向新生成的socketChannel中添加用户定义的业务处理器
+     * 2.其channelRead事件回调方法会将业务方往ServerBootstrap中添加的childHandler添加到socketChannel对应的pipeline中
+     * 3.对于Server端，channelRead事件被定义为server端accept到了新的socket连接
+     */
     private static class ServerBootstrapAcceptor extends ChannelInboundHandlerAdapter {
 
         private final EventLoopGroup childGroup;
