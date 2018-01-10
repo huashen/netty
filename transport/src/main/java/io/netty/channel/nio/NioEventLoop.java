@@ -351,6 +351,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         rebuildSelector0();
     }
 
+    /**
+     * fix空轮询bug:new一个新的selector，将之前注册到老的selector上的的channel重新转移到新的selector上
+     1)拿到有效的key
+     2)取消该key在旧的selector上的事件注册
+     3)将该key对应的channel注册到新的selector上
+     4)重新绑定channel和新的key的关系
+     */
     private void rebuildSelector0() {
         final Selector oldSelector = selector;
         final SelectorTuple newSelectorTuple;
@@ -419,6 +426,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     case SelectStrategy.CONTINUE:
                         continue;
                     case SelectStrategy.SELECT:
+                        /**
+                         * 首先轮询注册到reactor线程对用的selector上的所有的channel的IO事件
+                         */
                         select(wakenUp.getAndSet(false));
 
                         // 'wakenUp.compareAndSet(false, true)' is always evaluated
@@ -469,9 +479,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 } else {
                     final long ioStartTime = System.nanoTime();
                     try {
+                        //处理产生网络IO事件的Channel
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
+                        //处理任务队列
                         final long ioTime = System.nanoTime() - ioStartTime;
                         runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
                     }
@@ -742,8 +754,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         try {
             int selectCnt = 0;
             long currentTimeNanos = System.nanoTime();
+            //netty里面定时任务队列(包括普通任务，定时任务，tail task)是按照延迟时间从小到大进行排序， delayNanos(currentTimeNanos)方法即取出第一个定时任务的延迟时间
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
             for (;;) {
+                /**
+                 * 1.如果发现当前的定时任务队列中有任务的截止事件快到了(<=0.5ms)，就跳出循环
+                 * 2.跳出之前如果发现目前为止还没有进行过select操作（if (selectCnt == 0)），那么就调用一次selectNow()，该方法会立即返回，不会阻塞
+                 */
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
                 if (timeoutMillis <= 0) {
                     if (selectCnt == 0) {
@@ -757,15 +774,25 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // Selector#wakeup. So we need to check task queue again before executing select operation.
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
+                //轮询过程中发现有任务加入，中断本次轮询
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     selector.selectNow();
                     selectCnt = 1;
                     break;
                 }
 
+                //阻塞式select操作
                 int selectedKeys = selector.select(timeoutMillis);
                 selectCnt ++;
 
+                /**
+                 * 中断本次轮询的条件:
+                 1)轮询到IO事件 （selectedKeys != 0）
+                 2)oldWakenUp 参数为true
+                 3)任务队列里面有任务（hasTasks）
+                 4)第一个定时任务即将要被执行 （hasScheduledTasks（））
+                 5)用户主动唤醒（wakenUp.get()）
+                 */
                 if (selectedKeys != 0 || oldWakenUp || wakenUp.get() || hasTasks() || hasScheduledTasks()) {
                     // - Selected something,
                     // - waken up by user, or
@@ -788,6 +815,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     break;
                 }
 
+                //解决jdk的nio bug
                 long time = System.nanoTime();
                 if (time - TimeUnit.MILLISECONDS.toNanos(timeoutMillis) >= currentTimeNanos) {
                     // timeoutMillis elapsed without anything selected.
