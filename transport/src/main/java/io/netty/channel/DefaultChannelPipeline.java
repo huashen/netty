@@ -216,10 +216,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
+            //1.检查是否有重复handler
             checkMultiplicity(handler);
 
+            //2.创建节点
             newCtx = newContext(group, filterName(name, handler), handler);
 
+            //3.添加节点
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventloop yet.
@@ -243,6 +246,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        //4.回调用户方法
         callHandlerAdded0(newCtx);
         return this;
     }
@@ -603,6 +607,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private static void checkMultiplicity(ChannelHandler handler) {
         if (handler instanceof ChannelHandlerAdapter) {
             ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;
+            //一个Handler如果是sharable的，就可以无限次被添加到pipeline中，我们客户端代码如果要让一个Handler被共用，只需要加一个@Sharable标注
             if (!h.isSharable() && h.added) {
                 throw new ChannelPipelineException(
                         h.getClass().getName() +
