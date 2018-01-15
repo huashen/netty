@@ -69,8 +69,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      * The future of the current connection attempt.  If not null, subsequent
      * connection attempts will fail.
      */
+    //连接异步结果
     private ChannelPromise connectPromise;
+    //连接超时检测任务异步结果
     private ScheduledFuture<?> connectTimeoutFuture;
+    //连接的远端地址
     private SocketAddress requestedRemoteAddress;
 
     /**
@@ -200,16 +203,19 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         /**
          * Return underlying {@link SelectableChannel}
          */
+        //对应NIO中的JDK实现的Channel
         SelectableChannel ch();
 
         /**
          * Finish connect
          */
+        //连接完成
         void finishConnect();
 
         /**
          * Read from underlying {@link SelectableChannel}
          */
+        //从JDK的Channel中读取数据
         void read();
 
         void forceFlush();
@@ -277,6 +283,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                         @Override
                         public void operationComplete(ChannelFuture future) throws Exception {
                             if (future.isCancelled()) {
+                                //连接操作取消则连接超时检测任务取消
                                 if (connectTimeoutFuture != null) {
                                     connectTimeoutFuture.cancel(false);
                                 }
