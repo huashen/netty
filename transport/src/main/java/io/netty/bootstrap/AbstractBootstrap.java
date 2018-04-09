@@ -406,10 +406,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
+        /**
+         * 服务端启动最后一个步骤，绑完地址就可以正式进行通信了
+         */
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
+                    //服务端channel直接调用bind方法进行绑定地址
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
                     promise.setFailure(regFuture.cause());

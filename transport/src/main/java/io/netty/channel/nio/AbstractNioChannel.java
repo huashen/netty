@@ -391,6 +391,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
+                /**
+                 *eventLoop()对象是属于children[]属性中的其中一个，children是NioEventLoop类型的对象
+                 *在实例化每个children的时候，会为每个children创建一个多路复用器selector与unwrappedSelector
+                 */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {

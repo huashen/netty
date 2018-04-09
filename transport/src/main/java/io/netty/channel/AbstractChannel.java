@@ -501,6 +501,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
+                /**
+                 * 调用Channel的注册方法，让Channel的子类AbstractNioChannel来实现注册
+                 */
                 doRegister();
                 neverRegistered = false;
                 registered = true;
@@ -516,6 +519,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
+                /**
+                 * 检测Channel是否处于活跃状态，这里调用的是底层的socket的活跃状态
+                 */
                 if (isActive()) {
                     if (firstRegistration) {
                         //首次注册且激活触发Channel激活事件
@@ -525,6 +531,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         // again so that we process inbound data.
                         //
                         // See https://github.com/netty/netty/issues/4805
+                        /**
+                         * 设置Channel的读事件
+                         */
                         beginRead();
                     }
                 }

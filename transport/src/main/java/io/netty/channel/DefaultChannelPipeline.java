@@ -1129,6 +1129,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     private void callHandlerAddedForAllHandlers() {
         final PendingHandlerCallback pendingHandlerCallbackHead;
         synchronized (this) {
+            /**
+             * 测试registered是否为false，上面invokeHandlerAddedIfNeeded() 方法只会被调用一次
+             */
             assert !registered;
 
             // This Channel itself was registered.
@@ -1143,6 +1146,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         // holding the lock and so produce a deadlock if handlerAdded(...) will try to add another handler from outside
         // the EventLoop.
         PendingHandlerCallback task = pendingHandlerCallbackHead;
+        /**
+         * 通过while循环，单向链表一个个回调task的execute
+         */
         while (task != null) {
             task.execute();
             task = task.next;
