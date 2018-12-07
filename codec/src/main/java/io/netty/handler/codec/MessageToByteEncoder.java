@@ -99,24 +99,31 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         ByteBuf buf = null;
         try {
+            //1.判断传入的数据是否可以进行编码
             if (acceptOutboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
+                //2.创建一个 ByteBuf 实例
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
+                    //3.子类可以覆盖该方法，重写编码逻辑
                     encode(ctx, cast, buf);
                 } finally {
+                    //4.如果原始数据是 ReferenceCounted 实现类，则释放原始数据
                     ReferenceCountUtil.release(cast);
                 }
 
+                //5.如果 ByteBuf 中有数据了，则传播给 pipeline 中的下一个 handler
                 if (buf.isReadable()) {
                     ctx.write(buf, promise);
+                //释放该 ByteBuf 对象，传递一个空的 ByteBuf 给下一个 handler
                 } else {
                     buf.release();
                     ctx.write(Unpooled.EMPTY_BUFFER, promise);
                 }
                 buf = null;
             } else {
+                //如果传入的数据不可以进行编码，则直接传递给下一个 handler
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {
