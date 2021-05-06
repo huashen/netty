@@ -317,12 +317,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
          * Channel的初始化操作，并且构建了该Channel的ChannelPipeline，
          * 然后将该Channel(即，NioServerSocketChannel)注册到EventLoopGroup(即，parentGroup)中的某个EventLoop(即，NioEventLoop)上
          */
+        //init对应创建ServerSocketChannel
+        //Register对应注册ServerSocketChannel到Selector上
+        //initAndRegister里发生的原生ssc注册到selector未关注事件会切换至一个nio线程
         final ChannelFuture regFuture = initAndRegister();
+        System.out.println("abstractBootstrap regFuture:" + regFuture);
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
             return regFuture;
         }
 
+        //doBind0对应绑定ServerSocketChannel到某个端口上
+        //regFuture 等待回调 doBind0:nio线程等待nio线程回调 因为initAndRegister要做的工作有点多，所以一般会走else里的doBind0
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();

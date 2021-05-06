@@ -472,10 +472,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             AbstractChannel.this.eventLoop = eventLoop;
 
+            //这里发生了main线程切换到nio-thread
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
+                    //nio-thread eventLoop执行一个封装好的任务对象，即执行任务对象里面的register0方法
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -513,6 +515,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 //将用户Handler添加到ChannelPipelines
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                System.out.println("AbstractChannel promise:" + promise);
+                //因为设置了success 会回调AbstractBootstrap的doBind0方法 这里的promise和AbstractBootstrap->doBind方法里的ChannelFuture regFuture是同一对象
                 safeSetSuccess(promise);
 
                 // ServerSocketChannel接受的Channel此时已被激活
