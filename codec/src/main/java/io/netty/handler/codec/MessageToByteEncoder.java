@@ -110,6 +110,8 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
                     encode(ctx, cast, buf);
                 } finally {
                     //4.如果原始数据是 ReferenceCounted 实现类，则释放原始数据
+                    //// 既然自定义java对象转换成ByteBuf了，那么这个对象就已经无用了，释放掉
+                    //(当传入的msg类型是ByteBuf的时候，就不需要自己手动释放了)
                     ReferenceCountUtil.release(cast);
                 }
 
