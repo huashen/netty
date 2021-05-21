@@ -168,6 +168,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
         boolean setOpWrite = false;
         for (;;) {
+            // 拿到第一个需要flush的节点的数据
             Object msg = in.current();
             if (msg == null) {
                 // Wrote all messages.
@@ -177,6 +178,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             }
 
             if (msg instanceof ByteBuf) {
+                // 强转为ByteBuf，若发现没有数据可读，直接删除该节点
                 ByteBuf buf = (ByteBuf) msg;
                 int readableBytes = buf.readableBytes();
                 if (readableBytes == 0) {
@@ -186,9 +188,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                 boolean done = false;
                 long flushedAmount = 0;
+                // 拿到自旋锁迭代次数
                 if (writeSpinCount == -1) {
                     writeSpinCount = config().getWriteSpinCount();
                 }
+                // 自旋，将当前节点写出
                 for (int i = writeSpinCount - 1; i >= 0; i --) {
                     int localFlushedAmount = doWriteBytes(buf);
                     if (localFlushedAmount == 0) {
@@ -205,6 +209,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                 in.progress(flushedAmount);
 
+                //写完之后，将当前节点删除
                 if (done) {
                     in.remove();
                 } else {
