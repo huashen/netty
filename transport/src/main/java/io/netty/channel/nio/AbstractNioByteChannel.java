@@ -157,6 +157,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         }
     }
 
+    /**
+     * 写数据到socket缓冲区
+     * @param in
+     * @throws Exception
+     */
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         int writeSpinCount = -1;
