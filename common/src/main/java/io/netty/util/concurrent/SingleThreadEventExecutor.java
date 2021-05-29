@@ -48,6 +48,8 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * 执行所有提交的任务在一个单一的线程
+ * SingleThreadEventExecutor实现了EventExecutor，它会创建一个新线程，
+ * 并在该线程上处理事件，可以理解为单线程处理器
  */
 public abstract class SingleThreadEventExecutor extends AbstractScheduledEventExecutor implements OrderedEventExecutor {
 
@@ -82,11 +84,15 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             AtomicReferenceFieldUpdater.newUpdater(
                     SingleThreadEventExecutor.class, ThreadProperties.class, "threadProperties");
 
+    //待处理异步任务
     private final Queue<Runnable> taskQueue;
 
+    //EventLoop执行线程，即SingleThreadEventExecutor创建的新线程
     private volatile Thread thread;
     @SuppressWarnings("unused")
     private volatile ThreadProperties threadProperties;
+
+    // java.util.concurrent.Executor，负责创建线程
     private final Executor executor;
     private volatile boolean interrupted;
 
@@ -742,17 +748,25 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             throw new NullPointerException("task");
         }
 
+        /**
+         * inEventLoop方法，判断当前线程是否为EventLoop执行线程
+         * 若当前线程非EventLoop执行线程，调用startThread方法启动一个新的线程，执行run方法。
+         * 这里可以理解为启动EventLoop。
+         */
         boolean inEventLoop = inEventLoop();
         if (inEventLoop) {
+            //添加任务到待处理列表
             addTask(task);
         } else {
             startThread();
             addTask(task);
+            //如果当前EventLoop已关闭，拒绝任务
             if (isShutdown() && removeTask(task)) {
                 reject();
             }
         }
 
+        //若当前EventLoop线程阻塞正等待IO事件(Selector#select方法)，调用wakeup方法唤醒线程执行该新增任务
         if (!addTaskWakesUp && wakesUpForTask(task)) {
             wakeup(inEventLoop);
         }
