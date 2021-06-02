@@ -119,8 +119,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
+                    //分配内存给ByteBuf
                     byteBuf = allocHandle.allocate(allocator);
+                    //读取Socket数据到ByteBuf，这里默认会尝试读取1024字节的数据
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
+                    //如果lastBytesRead方法返回-1，表示Channel已关闭，这时释放当前ByteBuf引用，准备关闭Channel
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.
                         byteBuf.release();
@@ -131,14 +134,19 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
                     allocHandle.incMessagesRead(1);
                     readPending = false;
+                    //使用读取到的数据，触发ChannelPipeline#fireChannelRead，通常我们在这里处理数据
                     pipeline.fireChannelRead(byteBuf);
                     byteBuf = null;
+                    //判断是否需要继续读取数据,默认条件是，如果读取到的数据大小等于尝试读取数据大小1024字节，则继续读取
                 } while (allocHandle.continueReading());
 
+                //预留方法，提供给RecvByteBufAllocator做一些扩展操作
                 allocHandle.readComplete();
+                //触发ChannelPipeline#fireChannelReadComplete
                 pipeline.fireChannelReadComplete();
 
                 if (close) {
+                    //关闭Channel
                     closeOnRead(pipeline);
                 }
             } catch (Throwable t) {
