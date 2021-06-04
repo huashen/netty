@@ -409,6 +409,11 @@ public abstract class Recycler<T> {
         }
     }
 
+    /**
+     * Recycler将一个Stack划分给某个主线程，
+     * 主线程直接从Stack#elements中存取对象，而非主线程回收对象则存入WeakOrderQueue中
+     * @param <T>
+     */
     static final class Stack<T> {
 
         // we keep a queue of per-thread queues, which is appended to once only, each time a new thread other
@@ -420,12 +425,18 @@ public abstract class Recycler<T> {
         final AtomicInteger availableSharedCapacity;
         final int maxDelayedQueues;
 
+        // elements最大长度
         private final int maxCapacity;
         private final int ratioMask;
+
+        //主线程回收的对象 DefaultHandle，对象的包装类，在Recycler中缓存的对象都会包装成DefaultHandle类
         private DefaultHandle<?>[] elements;
+        //elements索引
         private int size;
         private int handleRecycleCount = -1; // Start with -1 so the first one will be recycled.
         private WeakOrderQueue cursor, prev;
+
+        // 非主线程回收的对象
         private volatile WeakOrderQueue head;
 
         Stack(Recycler<T> parent, Thread thread, int maxCapacity, int maxSharedCapacityFactor,
