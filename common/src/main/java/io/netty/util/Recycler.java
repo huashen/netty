@@ -234,6 +234,7 @@ public abstract class Recycler<T> {
         }
 
         // chain of data items
+        //WeakOrderQueue
         private Link head, tail;
         // pointer to another queue of delayed items for the same stack
         private WeakOrderQueue next;
@@ -558,10 +559,12 @@ public abstract class Recycler<T> {
             Thread currentThread = Thread.currentThread();
             if (thread == currentThread) {
                 // The current Thread is the thread that belongs to the Stack, we can try to push the object now.
+                //当前线程是主线程，直接将对象加入到Stack#elements中
                 pushNow(item);
             } else {
                 // The current Thread is not the one that belongs to the Stack, we need to signal that the push
                 // happens later.
+                //当前线程非主线程，需要将对象放到对应的WeakOrderQueue中
                 pushLater(item, currentThread);
             }
         }
