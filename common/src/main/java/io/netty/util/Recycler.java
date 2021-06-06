@@ -302,6 +302,8 @@ public abstract class Recycler<T> {
 
             Link tail = this.tail;
             int writeIndex;
+
+            //当前Link#elements已全部使用，创建一个新的Link
             if ((writeIndex = tail.get()) == LINK_CAPACITY) {
                 if (!reserveSpace(availableSharedCapacity, LINK_CAPACITY)) {
                     // Drop it.
@@ -312,10 +314,12 @@ public abstract class Recycler<T> {
 
                 writeIndex = tail.get();
             }
+            //存入缓存对象
             tail.elements[writeIndex] = handle;
             handle.stack = null;
             // we lazy set to ensure that setting stack to null appears before we unnull it in the owning thread;
             // this also means we guarantee visibility of an element in the queue if we see the index updated
+            //延迟设置Link#elements的最新索引
             tail.lazySet(writeIndex + 1);
         }
 
@@ -473,14 +477,21 @@ public abstract class Recycler<T> {
         }
 
         @SuppressWarnings({ "unchecked", "rawtypes" })
+        /**
+         * Recycler#threadLocal中存放了每个线程对应的Stack。
+         * Recycler#get中首先获取属于当前线程的Stack，再从该Stack中获取对象
+         * 每个线程只能从自己的Stack中获取对象
+         */
         DefaultHandle<T> pop() {
             int size = this.size;
+            //elements没有可用对象时，将WeakOrderQueue中的对象迁移到elements
             if (size == 0) {
                 if (!scavenge()) {
                     return null;
                 }
                 size = this.size;
             }
+            //从elements中取出一个缓存对象
             size --;
             DefaultHandle ret = elements[size];
             elements[size] = null;
@@ -592,25 +603,35 @@ public abstract class Recycler<T> {
             // we don't want to have a ref to the queue as the value in our weak map
             // so we null it out; to ensure there are no races with restoring it later
             // we impose a memory ordering here (no-op on x86)
+            /**
+             * DELAYED_RECYCLED是一个FastThreadLocal，可以理解为Netty中的ThreadLocal优化类。
+             * 它为每个线程维护了一个Map，存储每个Stack和对应WeakOrderQueue
+             */
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
             WeakOrderQueue queue = delayedRecycled.get(this);
             if (queue == null) {
+                //当前WeakOrderQueue数量超出限制，添加WeakOrderQueue.DUMMY作为标记
                 if (delayedRecycled.size() >= maxDelayedQueues) {
                     // Add a dummy queue so we know we should drop the object
                     delayedRecycled.put(this, WeakOrderQueue.DUMMY);
                     return;
                 }
                 // Check if we already reached the maximum number of delayed queues and if we can allocate at all.
+                /**
+                 * 构造一个WeakOrderQueue，加入到Stack#head指向的WeakOrderQueue链表中，并放入DELAYED_RECYCLED
+                 */
                 if ((queue = WeakOrderQueue.allocate(this, thread)) == null) {
                     // drop object
                     return;
                 }
                 delayedRecycled.put(this, queue);
             } else if (queue == WeakOrderQueue.DUMMY) {
+                //遇到WeakOrderQueue.DUMMY标记对象，直接抛弃对象
                 // drop object
                 return;
             }
 
+            //将缓存对象添加到WeakOrderQueue中
             queue.add(item);
         }
 
