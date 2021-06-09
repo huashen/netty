@@ -55,16 +55,23 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     private static final NotYetConnectedException FLUSH0_NOT_YET_CONNECTED_EXCEPTION = ThrowableUtil.unknownStackTrace(
             new NotYetConnectedException(), AbstractUnsafe.class, "flush0()");
 
+    // 父 Channel（NioServerSocketChannel 是没有父channel的）
     private final Channel parent;
+    // Channel 唯一ID
     private final ChannelId id;
+    // Unsafe 对象，封装 ByteBuf 的读写操作
     private final Unsafe unsafe;
+    // 关联的 Pipeline 对象
     private final DefaultChannelPipeline pipeline;
     private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
     private final CloseFuture closeFuture = new CloseFuture(this);
 
+    // 本地地址和远端地址
     private volatile SocketAddress localAddress;
     private volatile SocketAddress remoteAddress;
+    // EventLoop 封装的 Selector
     private volatile EventLoop eventLoop;
+    // 是否注册
     private volatile boolean registered;
     private boolean closeInitiated;
 
@@ -113,6 +120,15 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     /**
      * Returns a new {@link DefaultChannelPipeline} instance.
+     */
+    /**
+     * DefaultChannelPipeline 只是一个 Handler 的容器，也可以理解为一个Handler链，具体的逻辑由Handler处理，
+     * 而每个Handler都会分配一个EventLoop，最终的请求还是要EventLoop来执行，而EventLoop中又调用Channel中的内部类Unsafe对应的方法。
+     * 新建一个channel会自动创建一个ChannelPipeline。
+     *
+     * 这里创建 DefaultChannelPipeline，构造中传入当前的 Channel，而读写数据都是在 ChannelPipeline 中进行的，
+     * ChannelPipeline 进行读写数据又委托给 Channel 中的 Unsafe 进行操作。
+     * @return
      */
     protected DefaultChannelPipeline newChannelPipeline() {
         return new DefaultChannelPipeline(this);
@@ -337,6 +353,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     /**
      * Create a new {@link AbstractUnsafe} instance which will be used for the life-time of the {@link Channel}
+     */
+    /**
+     * Unsafe类里实现了具体的连接与写数据,比如：网络的读，写，链路关闭，发起连接等。
+     * 之所以命名为unsafe是不希望外部使用，并非是不安全的
+     * Unsafe 实现交给子类实现
+     * @return
      */
     protected abstract AbstractUnsafe newUnsafe();
 
