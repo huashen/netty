@@ -54,9 +54,13 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final ClosedChannelException DO_CLOSE_CLOSED_CHANNEL_EXCEPTION = ThrowableUtil.unknownStackTrace(
             new ClosedChannelException(), AbstractNioChannel.class, "doClose()");
 
+    // 抽象了 SocketChannel 和 ServerSocketChannel 的公共的父类
     private final SelectableChannel ch;
+    // SelectionKey.OP_READ 读事件
     protected final int readInterestOp;
+    // 注册到 selector 上返回的 selectorKey
     volatile SelectionKey selectionKey;
+    // 是否还有未读的数据
     boolean readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
         @Override
@@ -394,6 +398,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 /**
                  *eventLoop()对象是属于children[]属性中的其中一个，children是NioEventLoop类型的对象
                  *在实例化每个children的时候，会为每个children创建一个多路复用器selector与unwrappedSelector
+                 *
+                 * javaChannel() ：是 Nio 中的 channel
+                 * eventLoop().unwrappedSelector(): 是 Nio 中的 selector
                  */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
@@ -417,6 +424,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         eventLoop().cancel(selectionKey());
     }
 
+    /**
+     * 当 Channel 处于 channelActive 状态后，
+     * 就会在DefaultChannelPipeline.channelActive 方法中调用 doBeginRead() 方法，在 selector 上注册读事件
+     *
+     * @throws Exception
+     */
     @Override
     protected void doBeginRead() throws Exception {
         // Channel.read() or ChannelHandlerContext.read() was called
