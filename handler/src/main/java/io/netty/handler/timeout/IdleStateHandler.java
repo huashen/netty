@@ -107,9 +107,13 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
     };
 
+    //是否考虑出站时较慢的情况。默认值是false（不考虑）
     private final boolean observeOutput;
+    // 读事件空闲时间，0 则禁用事件
     private final long readerIdleTimeNanos;
+    // 写事件空闲时间，0 则禁用事件
     private final long writerIdleTimeNanos;
+    //读或写空闲时间，0 则禁用事件
     private final long allIdleTimeNanos;
 
     private ScheduledFuture<?> readerIdleTimeout;
@@ -238,6 +242,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        //当该 handler 被添加到 pipeline 中时，则调用 initialize 方法
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
             // channelActive() event has been fired already, which means this.channelActive() will
             // not be invoked. We have to initialize here instead.
@@ -319,6 +324,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
         lastReadTime = lastWriteTime = ticksInNanos();
         if (readerIdleTimeNanos > 0) {
+            // 这里的 schedule 方法会调用 eventLoop 的 schedule 方法，将定时任务添加进队列中
             readerIdleTimeout = schedule(ctx, new ReaderIdleTimeoutTask(ctx),
                     readerIdleTimeNanos, TimeUnit.NANOSECONDS);
         }
