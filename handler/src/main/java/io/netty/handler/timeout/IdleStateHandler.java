@@ -319,7 +319,9 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             return;
         }
 
+        //将 state 状态设置为 1，防止重复初始化
         state = 1;
+        //初始化 “监控出站数据属性”
         initOutputChanged(ctx);
 
         lastReadTime = lastWriteTime = ticksInNanos();
@@ -402,6 +404,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             Unsafe unsafe = channel.unsafe();
             ChannelOutboundBuffer buf = unsafe.outboundBuffer();
 
+            //记录了出站缓冲区相关的数据，buf 对象的 hash 码，和 buf 的剩余缓冲字节数
             if (buf != null) {
                 lastMessageHashCode = System.identityHashCode(buf.current());
                 lastPendingWriteBytes = buf.totalPendingWriteBytes();
@@ -490,13 +493,20 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
             if (nextDelay <= 0) {
                 // Reader is idle - set a new timeout and notify the callback.
+                //用于取消任务 promise
                 readerIdleTimeout = schedule(ctx, this, readerIdleTimeNanos, TimeUnit.NANOSECONDS);
 
                 boolean first = firstReaderIdleEvent;
                 firstReaderIdleEvent = false;
 
                 try {
+                    // 再次提交任务
                     IdleStateEvent event = newIdleStateEvent(IdleState.READER_IDLE, first);
+                    // 触发用户 handler use
+                    /**
+                     * 创建一个 IdleStateEvent 类型的写事件对象，
+                     * 将此对象传递给用户的 UserEventTriggered 方法。完成触发事件的操作
+                     */
                     channelIdle(ctx, event);
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
