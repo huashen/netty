@@ -427,10 +427,12 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             // that there's change happening on byte level. If the user doesn't observe channel
             // writability events then they'll eventually OOME and there's clearly a different
             // problem and idleness is least of their concerns.
+            // 如果最后一次写的时间和上一次记录的时间不一样，说明写操作进行过了，则更新此值
             if (lastChangeCheckTimeStamp != lastWriteTime) {
                 lastChangeCheckTimeStamp = lastWriteTime;
 
                 // But this applies only if it's the non-first call.
+                // 但如果，在这个方法的调用间隙修改的，就仍然不触发事件
                 if (!first) {
                     return true;
                 }
@@ -440,14 +442,19 @@ public class IdleStateHandler extends ChannelDuplexHandler {
             Unsafe unsafe = channel.unsafe();
             ChannelOutboundBuffer buf = unsafe.outboundBuffer();
 
+            // 如果出站区有数据
             if (buf != null) {
+                // 拿到出站缓冲区的 对象 hashcode
                 int messageHashCode = System.identityHashCode(buf.current());
+                // 拿到这个 缓冲区的 所有字节
                 long pendingWriteBytes = buf.totalPendingWriteBytes();
 
+                // 如果和之前的不相等，或者字节数不同，说明，输出有变化，将 "最后一个缓冲区引用" 和 “剩余字节数” 刷新
                 if (messageHashCode != lastMessageHashCode || pendingWriteBytes != lastPendingWriteBytes) {
                     lastMessageHashCode = messageHashCode;
                     lastPendingWriteBytes = pendingWriteBytes;
 
+                    // 如果写操作没有进行过，则任务写的慢，不触发空闲事件
                     if (!first) {
                         return true;
                     }
@@ -564,6 +571,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
             long nextDelay = allIdleTimeNanos;
             if (!reading) {
+                // 当前时间减去 最后一次写或读 的时间 ，若大于0，说明超时了
                 nextDelay -= ticksInNanos() - Math.max(lastReadTime, lastWriteTime);
             }
             if (nextDelay <= 0) {
