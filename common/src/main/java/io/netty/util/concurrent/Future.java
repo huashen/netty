@@ -104,11 +104,20 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
      */
+    /**
+     * 阻塞等待任务结束，如果任务失败，将“导致失败的异常”重新抛出来
+     * @return
+     * @throws InterruptedException
+     */
     Future<V> sync() throws InterruptedException;
 
     /**
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
+     */
+    /**
+     * 不响应中断的 sync()，这个大家应该都很熟了
+     * @return
      */
     Future<V> syncUninterruptibly();
 
@@ -117,6 +126,11 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * @throws InterruptedException
      *         if the current thread was interrupted
+     */
+    /**
+     * 阻塞等待任务结束，和 sync() 功能是一样的，不过如果任务失败，它不会抛出执行过程中的异常
+     * @return
+     * @throws InterruptedException
      */
     Future<V> await() throws InterruptedException;
 
@@ -183,6 +197,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      */
     /**
      * 非阻塞地返回异步结果，如果尚未完成返回null
+     * etc:java.util.concurrent.Future 中的 get() 是阻塞的
      * @return
      */
     V getNow();
