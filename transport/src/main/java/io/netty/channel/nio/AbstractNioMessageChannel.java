@@ -19,6 +19,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.ServerChannel;
 
@@ -91,6 +92,12 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                         //统计创建连接的个数
                         allocHandle.incMessagesRead(localRead);
                     } while (allocHandle.continueReading());
+                    /**
+                     * RecvByteBufAllocator = io.netty.channel.AdaptiveRecvByteBufAllocator
+                     * RecvByteBufAllocator.Handle = io.netty.channel.AdaptiveRecvByteBufAllocator.HandleImpl extends MaxMessageHandle
+                     *
+                     * @see DefaultMaxMessagesRecvByteBufAllocator.MaxMessageHandle
+                     */
                 } catch (Throwable t) {
                     exception = t;
                 }
