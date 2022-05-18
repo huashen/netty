@@ -138,6 +138,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+        /**
+         * 作用：调用JDK NIO ServerSocketChannel的accept方法，从内核全连接队列中取出客户端连接
+         */
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {
