@@ -760,7 +760,7 @@
           </dependency>
         </dependencies>
       </plugin>
-      <plugin>
+      <!--<plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>xml-maven-plugin</artifactId>
         <version>1.0.1</version>
@@ -784,7 +784,7 @@
           </formatFileSets>
           <useDefaultFormatFileSet>false</useDefaultFormatFileSet>
         </configuration>
-      </plugin>
+      </plugin>-->
       <!-- Download the npn-boot.jar in advance to add it to the boot classpath. -->
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
