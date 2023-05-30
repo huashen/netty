@@ -92,8 +92,10 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     public static void remove() {
         Thread thread = Thread.currentThread();
         if (thread instanceof FastThreadLocalThread) {
+            // 将FastThreadLocalThread 内部的map置为null
             ((FastThreadLocalThread) thread).setThreadLocalMap(null);
         } else {
+            // 将 ThreadLocal内部ThreadLocalMap 中的value置为null
             slowThreadLocalMap.remove();
         }
     }

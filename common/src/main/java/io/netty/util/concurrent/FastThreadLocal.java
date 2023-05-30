@@ -43,6 +43,7 @@ import java.util.Set;
  */
 public class FastThreadLocal<V> {
 
+    // 常量0，存放FastThreadLocal集合的下标
     private static final int variablesToRemoveIndex = InternalThreadLocalMap.nextVariableIndex();
 
     /**
@@ -51,23 +52,28 @@ public class FastThreadLocal<V> {
      * manage.
      */
     public static void removeAll() {
+        // 获取到map
         InternalThreadLocalMap threadLocalMap = InternalThreadLocalMap.getIfSet();
         if (threadLocalMap == null) {
             return;
         }
 
         try {
+            // 获取到Set<FastThreadLocal>集合
             Object v = threadLocalMap.indexedVariable(variablesToRemoveIndex);
             if (v != null && v != InternalThreadLocalMap.UNSET) {
                 @SuppressWarnings("unchecked")
                 Set<FastThreadLocal<?>> variablesToRemove = (Set<FastThreadLocal<?>>) v;
+                // 将Set转换为数组
                 FastThreadLocal<?>[] variablesToRemoveArray =
                         variablesToRemove.toArray(new FastThreadLocal[variablesToRemove.size()]);
+                // 遍历数组，删除每一个FastThreadLocal对应的value
                 for (FastThreadLocal<?> tlv: variablesToRemoveArray) {
                     tlv.remove(threadLocalMap);
                 }
             }
         } finally {
+            // 删除当前线程的InternalThreadLocalMap
             InternalThreadLocalMap.remove();
         }
     }
@@ -122,6 +128,7 @@ public class FastThreadLocal<V> {
         variablesToRemove.remove(variable);
     }
 
+    // 每一个FastThreadLocal对应的数组的下标
     private final int index;
 
     public FastThreadLocal() {
@@ -218,11 +225,15 @@ public class FastThreadLocal<V> {
             return;
         }
 
+        // 从 InternalThreadLocalMap 中删除当前的FastThreadLocal对应的value并设UNSET
         Object v = threadLocalMap.removeIndexedVariable(index);
+        // 从 InternalThreadLocalMap 中的Set<FastThreadLocal<?>>中删除当前的FastThreadLocal对象
         removeFromVariablesToRemove(threadLocalMap, this);
 
+        // 如果删除的是有效值，则进行onRemove方法的回调
         if (v != InternalThreadLocalMap.UNSET) {
             try {
+                // 回调子类复写的onRemoved方法，默认为空实现
                 onRemoval((V) v);
             } catch (Exception e) {
                 PlatformDependent.throwException(e);

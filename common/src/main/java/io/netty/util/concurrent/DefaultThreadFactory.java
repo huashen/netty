@@ -107,10 +107,12 @@ public class DefaultThreadFactory implements ThreadFactory {
     public Thread newThread(Runnable r) {
         Thread t = newThread(new DefaultRunnableDecorator(r), prefix + nextId.incrementAndGet());
         try {
+            // 一般daemon为false，意思是不设置为守护线程
             if (t.isDaemon() != daemon) {
                 t.setDaemon(daemon);
             }
 
+            // 优先级 默认为5
             if (t.getPriority() != priority) {
                 t.setPriority(priority);
             }
