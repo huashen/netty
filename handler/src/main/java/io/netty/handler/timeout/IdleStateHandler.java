@@ -150,6 +150,12 @@ public class IdleStateHandler extends ChannelDuplexHandler {
      *        will be triggered when neither read nor write was performed for
      *        the specified period of time.  Specify {@code 0} to disable.
      */
+    /**
+     * 初始化3个属性
+     * @param readerIdleTimeSeconds 读超时时间
+     * @param writerIdleTimeSeconds 写超时时间
+     * @param allIdleTimeSeconds  读写超时时间
+     */
     public IdleStateHandler(
             int readerIdleTimeSeconds,
             int writerIdleTimeSeconds,
@@ -291,6 +297,14 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         ctx.fireChannelRead(msg);
     }
 
+    /**
+     * 在读取网络数据的时候，会先调用 channelRead 方法，
+     * 等缓冲区中的数据读取完成之后，暂时没有数据可读了
+     * 会再调用 channelReadComplete 方法
+     * reading = true表示读取中 调用完channelReadComplete方法后会把reading置为false
+     * @param ctx
+     * @throws Exception
+     */
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         if ((readerIdleTimeNanos > 0 || allIdleTimeNanos > 0) && reading) {
@@ -310,6 +324,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
     }
 
+    /**
+     * 初始化
+     * 将读 / 写 / 读写超时任务加入到定时任务队列中
+     * @param ctx
+     */
     private void initialize(ChannelHandlerContext ctx) {
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
@@ -507,7 +526,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 firstReaderIdleEvent = false;
 
                 try {
-                    // 再次提交任务
+                    // 再次提交任务 读取超时,会向下传递一个读空闲事件
                     IdleStateEvent event = newIdleStateEvent(IdleState.READER_IDLE, first);
                     // 触发用户 handler use
                     /**
@@ -520,6 +539,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 }
             } else {
                 // Read occurred before the timeout - set a new timeout with shorter delay.
+                // 安全范围
                 readerIdleTimeout = schedule(ctx, this, nextDelay, TimeUnit.NANOSECONDS);
             }
         }
